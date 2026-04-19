@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔐 Security vulnerability
+    url: https://github.com/svrohith9/fitduel/security/advisories/new
+    about: Please report security issues privately, not in public issues.
+  - name: 🚀 Live demo
+    url: https://fitduel-xi.vercel.app
+    about: Try the app before filing — it may already be fixed.

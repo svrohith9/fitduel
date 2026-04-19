@@ -1,0 +1,67 @@
+name: 🐛 Bug report
+description: Something isn't working — help us track it down.
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug!
+        Please fill out the fields below so we can reproduce it.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: One or two sentences. What did you expect vs. what you got.
+      placeholder: "I clicked 'Create duel', the page spun forever and nothing was saved."
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Include every step. "Obvious" steps often hide the bug.
+      placeholder: |
+        1. Go to /dashboard/duels/new
+        2. Pick Couple → 30 days → % weight loss
+        3. Click 'Create & invite'
+    validations:
+      required: true
+
+  - type: input
+    id: url
+    attributes:
+      label: URL
+      description: The page where it happened (live demo or localhost).
+      placeholder: "https://fitduel-xi.vercel.app/dashboard/duels/new"
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Where did this happen?
+      options:
+        - Live demo (fitduel-xi.vercel.app)
+        - Self-hosted deployment
+        - Local dev (npm run dev)
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser / OS
+      placeholder: "Chrome 126 on macOS 14, or Safari on iOS 17"
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Console errors
+      description: Open DevTools → Console. Paste anything red.
+      render: text
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or video
+      description: Drag images or short clips here. Often the fastest way to understand.
