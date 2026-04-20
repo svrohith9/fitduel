@@ -11,12 +11,23 @@ type Props = {
   initialUnit?: WeightUnit;
   initialKg?: number | null;
   placeholderKg?: number | null;
-  min?: number;
-  max?: number;
+  /** Hard lower bound in kg (default 20). */
+  minKg?: number;
+  /** Hard upper bound in kg (default 300). */
+  maxKg?: number;
   required?: boolean;
   onChangeKg?: (kg: number | null) => void;
   showToggle?: boolean;
 };
+
+function parseWeight(raw: string): number | null {
+  if (!raw) return null;
+  // Accept comma as decimal separator, strip spaces.
+  const cleaned = raw.replace(/\s+/g, "").replace(",", ".");
+  if (!/^-?\d*\.?\d*$/.test(cleaned)) return Number.NaN;
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : Number.NaN;
+}
 
 export function WeightInput({
   name,
@@ -24,8 +35,8 @@ export function WeightInput({
   initialUnit = "kg",
   initialKg,
   placeholderKg,
-  min = 20,
-  max = 300,
+  minKg = 20,
+  maxKg = 300,
   required,
   onChangeKg,
   showToggle = true,
@@ -36,8 +47,11 @@ export function WeightInput({
     const v = initialUnit === "kg" ? initialKg : kgToLbs(initialKg);
     return v.toFixed(1);
   });
+  const [touched, setTouched] = useState(false);
 
-  const parsed = value === "" ? null : Number(value);
+  const parsed = parseWeight(value);
+  const isEmpty = value.trim() === "";
+  const isNaN = parsed != null && Number.isNaN(parsed);
   const kg =
     parsed == null || Number.isNaN(parsed)
       ? null
@@ -45,18 +59,31 @@ export function WeightInput({
         ? parsed
         : lbsToKg(parsed);
 
+  const outOfRange =
+    kg != null && (kg < minKg || kg > maxKg);
+
+  let error: string | null = null;
+  if (touched) {
+    if (isEmpty && required) error = "Enter your weight.";
+    else if (isNaN) error = "Only numbers — e.g. 78.4";
+    else if (outOfRange) {
+      const lo = unit === "kg" ? minKg : kgToLbs(minKg);
+      const hi = unit === "kg" ? maxKg : kgToLbs(maxKg);
+      error = `Must be between ${lo.toFixed(0)} and ${hi.toFixed(0)} ${unit}.`;
+    }
+  }
+
   function switchUnit(next: WeightUnit) {
     if (next === unit) return;
     if (parsed != null && !Number.isNaN(parsed)) {
       const converted = next === "kg" ? lbsToKg(parsed) : kgToLbs(parsed);
+      // Keep one decimal on display-side for readability.
       setValue(converted.toFixed(1));
     }
     setUnit(next);
   }
 
-  const minInUnit = unit === "kg" ? min : kgToLbs(min);
-  const maxInUnit = unit === "kg" ? max : kgToLbs(max);
-  const ph =
+  const placeholder =
     placeholderKg != null
       ? (unit === "kg" ? placeholderKg : kgToLbs(placeholderKg)).toFixed(1)
       : unit === "kg"
@@ -74,30 +101,41 @@ export function WeightInput({
         </label>
       )}
       <div className="flex items-center gap-2">
-        <div className="relative flex flex-1 items-center rounded-2xl border border-white/10 bg-white/[0.03] transition-colors focus-within:border-white/30">
+        <div
+          className={cn(
+            "relative flex flex-1 items-center rounded-2xl border bg-white/[0.03] transition-colors",
+            error
+              ? "border-red-500/60"
+              : "border-white/10 focus-within:border-white/30",
+          )}
+        >
           <span className="pl-4 text-text-muted pointer-events-none">
             <Scale className="h-4 w-4" />
           </span>
           <input
             id={name}
-            type="number"
-            step="0.1"
-            min={minInUnit}
-            max={maxInUnit}
+            // Text (not number) so we fully own validation and let users type
+            // any precision / comma without browser nags.
+            type="text"
             inputMode="decimal"
+            autoComplete="off"
             required={required}
-            placeholder={ph}
+            placeholder={placeholder}
             value={value}
             onChange={(e) => {
               setValue(e.target.value);
-              const n = Number(e.target.value);
-              const asKg = Number.isNaN(n)
-                ? null
-                : unit === "kg"
-                  ? n
-                  : lbsToKg(n);
+              const p = parseWeight(e.target.value);
+              const asKg =
+                p == null || Number.isNaN(p)
+                  ? null
+                  : unit === "kg"
+                    ? p
+                    : lbsToKg(p);
               onChangeKg?.(asKg);
             }}
+            onBlur={() => setTouched(true)}
+            aria-invalid={!!error}
+            aria-describedby={error ? `${name}-error` : undefined}
             className="flex-1 bg-transparent py-3.5 pl-3 pr-3 text-[0.95rem] text-text placeholder:text-text-muted outline-none"
           />
           <span className="pr-4 text-sm font-semibold text-text-dim pointer-events-none">
@@ -124,11 +162,16 @@ export function WeightInput({
           </div>
         )}
       </div>
+      {error && (
+        <span id={`${name}-error`} className="text-xs text-red-400">
+          {error}
+        </span>
+      )}
       {/* Hidden field that always submits kg to the server. */}
       <input
         type="hidden"
         name={name}
-        value={kg == null ? "" : kg.toFixed(4)}
+        value={kg == null || outOfRange ? "" : kg.toFixed(4)}
       />
     </div>
   );
